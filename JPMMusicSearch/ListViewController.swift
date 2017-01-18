@@ -48,6 +48,7 @@ final class ListViewController: UIViewController {
     private func setUpSearchController() {
         //searchController.searchResultsUpdater = self
         searchController.dimsBackgroundDuringPresentation = false
+        searchController.searchBar.backgroundColor = UIColor.blue
         definesPresentationContext = true
         listTableView.tableHeaderView = searchController.searchBar
         searchController.searchBar.delegate = self
@@ -126,7 +127,7 @@ extension ListViewController: UISearchBarDelegate {
                         UIApplication.shared.isNetworkActivityIndicatorVisible = false
                         self?.listTableView.reloadData()
                     } else {
-                        // TODO: Display alert with error
+                        //MARK: - create an alert here
                     }
                 })
             })

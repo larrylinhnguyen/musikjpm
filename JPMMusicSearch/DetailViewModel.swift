@@ -12,6 +12,7 @@ import Foundation
 protocol DetailViewModelDelegate: class {
     
     func imageDataDownloadDidFinished()
+    func lyricsDownloadDidFinished()
 }
 
 
@@ -27,6 +28,7 @@ final class DetailViewModel {
     let releaseDate: String
     let priceTitle: String
     
+    
     private let track: Track
     private let dataSource: ITunesDataSource
     
@@ -38,6 +40,16 @@ final class DetailViewModel {
             }
         }
     }
+    
+    var lyrics: String? {
+        didSet {
+            if lyrics != nil {
+                print("Did set lyrics")
+                delegate?.lyricsDownloadDidFinished()
+            }
+        }
+    }
+
     
     private var dateFormatter: DateFormatter = {
         let dateFormatter = DateFormatter()
@@ -60,13 +72,14 @@ final class DetailViewModel {
         priceTitle = "Price (\(track.currency))"
         
         downloadImageData()
+        downloadLyrics()
     }
     
     deinit {
         print("Deinitialized detail view model...")
     }
     
-    
+    // MARK: - Get image data for using in DetailView - return image data
     private func downloadImageData() {
         print("Downloading artwork with url: \(artworkUrl)")
         dataSource.downloadImage(from: artworkUrl, completion: { [weak self] data in
@@ -75,4 +88,18 @@ final class DetailViewModel {
             }
         })
     }
+    //MARK: - Download lyrics - return type : String
+    private func downloadLyrics() {
+        
+        let lyricsURL = "http://lyrics.wikia.com/api.php?func=getSong&artist=\(artistName.replacingOccurrences(of: " ", with: "+",options: .literal, range: nil))&song=\(trackName.replacingOccurrences(of: " ", with: "+"))&fmt=xml"
+        print("Downloading artwork with url: \(lyricsURL)")
+        dataSource.downloadLyrics(from: lyricsURL, completion: { [weak self] aString in
+            
+            if aString != nil {
+               self?.lyrics = aString
+            }
+        })
+    }
+
+    
 }

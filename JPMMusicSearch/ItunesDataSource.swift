@@ -7,9 +7,11 @@
 //
 
 import Foundation
+import SWXMLHash
 
 final class ITunesDataSource {
     
+    //itunes soundtrack properties
     struct ITunesKeys {
         static let baseTerm = "https://itunes.apple.com/search?term="
         
@@ -43,17 +45,19 @@ final class ITunesDataSource {
     
     // TODO: Try to cancel download image if needed
     var imageDownloadTask: URLSessionTask?
+    var lyricsDownloadTask: URLSessionTask?
     
+    // Initilizer with session which is configurated
     init() {
         sessionConfig = URLSessionConfiguration.default
         session = URLSession(configuration: sessionConfig)
     }
     
     
-    // MARK: - Search content
+    // MARK: - Search function - THIS IS MAIN FUNCTION
     func search(for content: String, completion: @escaping (_ tracks: [Track]?, _ errorMessage: String?) -> Void) {
-        // TODO: Add condition if iOS 8
-        // let termEncoded = content.addingPercentEscapes(using: String.Encoding.utf8)
+        
+        
         
         let termEncoded = content.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)
         let urlString = ITunesKeys.baseTerm.appending(termEncoded!)
@@ -68,6 +72,7 @@ final class ITunesDataSource {
         
         let request = URLRequest(url: url!)
         
+        //MARK: - create a data task with request
         let task = session.dataTask(with: request, completionHandler: { [weak self] data, response, error in
             print("Data: \(data)")
             print("Response: \(response)")
@@ -87,7 +92,7 @@ final class ITunesDataSource {
                     completion(nil, error?.localizedDescription)
                 }
             } else {
-                
+                //show error
             }
         })
         
@@ -95,7 +100,7 @@ final class ITunesDataSource {
     }
     
     
-    // MARK: - Handle results
+    // MARK: - Handle returned results
     private func handleSearchResults(with data: Data) -> [Track]? {
         
         var tracks = [Track]()
@@ -176,4 +181,43 @@ final class ITunesDataSource {
         
         imageDownloadTask?.resume()
     }
+    
+    // MARK: - Download lyrics
+    func downloadLyrics(from url: String, completion: @escaping (_ lyrics: String?) -> Void) {
+        var lyrics = ""
+        let lyricsURL = URL(string: url)
+        
+        guard lyricsURL != nil else {
+            completion(nil)
+            return
+        }
+        
+        lyricsDownloadTask = session.dataTask(with: lyricsURL!, completionHandler: { (data, response, error) in
+            if error == nil {
+                let httpResponse = response as? HTTPURLResponse
+                if httpResponse?.statusCode == 200 {
+                    guard data != nil else {
+                        
+                        completion(nil)
+                        return
+                    }
+                    
+                 // Using SWXMLHash to get xml data
+                    let xml = SWXMLHash.config {
+                        config in
+                        // set any config options here
+                        }.parse(data!)
+                    lyrics = (xml["LyricsResult"]["lyrics"].element?.text)!
+                    
+                    completion(lyrics)
+                }
+            } else {
+                print("Couldn't load image from url: \(lyricsURL)")
+                completion(nil)
+            }
+        })
+        
+        lyricsDownloadTask?.resume()
+    }
+
 }
